@@ -11,15 +11,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<ODataContext>(opt => opt.UseInMemoryDatabase("Cars"));
-builder.Services.AddControllers().AddOData(opt => opt.AddRouteComponents("odata", GetEdmModel()).Filter().Select());
+//builder.Services.AddDbContext<ODataContext>(opt => opt.UseInMemoryDatabase("Cars"));
+builder.Services.AddDbContext<ODataContext2>(opt => opt.UseInMemoryDatabase("WeatherData"));
+builder.Services.AddControllers().AddOData(opt => opt.AddRouteComponents("odata",GetEdmModel()).Filter().Select().Expand());
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
@@ -33,6 +38,14 @@ app.Run();
 IEdmModel GetEdmModel()
 {
     var builder = new ODataConventionModelBuilder();
-    builder.EntitySet<Car>("Cars");
+    
+    builder.EntitySet<Weather>("WeatherData");
+    //builder.EntitySet<City>("City");
+    builder.EntityType<Weather>().HasKey(q => q.Id);
+    builder.EntityType<City>().HasKey(q => q.Id);
+    //builder.EntityType<Weather>().Property(q => q.City).IsNotExpandable();
+    //builder.EntityType<Weather>().Expand(SelectExpandType.Automatic, nameof(Weather.City));
+    builder.EntityType<Weather>().HasRequired(q => q.City, (Forecast, City) => Forecast.CityId == City.Id);
+    builder.EntityType<Weather>().Property(q => q.TemperatureC).IsNotFilterable();
     return builder.GetEdmModel();
 }
